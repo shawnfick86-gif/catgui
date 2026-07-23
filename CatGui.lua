@@ -15,6 +15,10 @@ local BREAK_OUT_POSITION = Vector3.new(222, 11, -45)
 local YARD_POSITION = Vector3.new(115, 9, 97)
 local BANK_POSITION = Vector3.new(7, 35, 650)
 
+-- Default humanoid stats (used by Reset Stats)
+local DEFAULT_WALKSPEED = 16
+local DEFAULT_JUMPPOWER = 50
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatGui"
@@ -252,7 +256,7 @@ end
 local FLY_SPEED = 50
 local flying = false
 local flyBodyVelocity, flyBodyGyro
-local flyButtonRef -- assigned after createButton runs, used to flip label text
+local flyButtonRef
 
 local function stopFly()
 	flying = false
@@ -310,17 +314,6 @@ local function toggleFly()
 	end
 end
 
--- Turn flying off automatically if the character resets/respawns
-player.CharacterAdded:Connect(function()
-	flying = false
-	flyBodyVelocity = nil
-	flyBodyGyro = nil
-	if flyButtonRef then
-		flyButtonRef.Text = "Fly (Off)"
-	end
-end)
-
--- Movement loop: WASD relative to camera, Space/Shift for up/down
 RunService.Heartbeat:Connect(function()
 	if not flying then
 		return
@@ -365,6 +358,203 @@ RunService.Heartbeat:Connect(function()
 	flyBodyVelocity.Velocity = moveVector
 	flyBodyGyro.CFrame = camera.CFrame
 end)
+
+-- ===== Noclip =====
+local noclip = false
+local noclipButtonRef
+
+local function setCharacterCollisions(canCollide)
+	local character = player.Character
+	if not character then
+		return
+	end
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = canCollide
+		end
+	end
+end
+
+local function toggleNoclip()
+	noclip = not noclip
+	if noclipButtonRef then
+		noclipButtonRef.Text = noclip and "Noclip (On)" or "Noclip (Off)"
+	end
+	if not noclip then
+		setCharacterCollisions(true)
+	end
+end
+
+RunService.Stepped:Connect(function()
+	if not noclip then
+		return
+	end
+	local character = player.Character
+	if not character then
+		return
+	end
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") and part.CanCollide then
+			part.CanCollide = false
+		end
+	end
+end)
+
+-- ===== Infinite Jump =====
+local infiniteJumpEnabled = false
+local infiniteJumpButtonRef
+
+local function toggleInfiniteJump()
+	infiniteJumpEnabled = not infiniteJumpEnabled
+	if infiniteJumpButtonRef then
+		infiniteJumpButtonRef.Text = infiniteJumpEnabled and "Infinite Jump (On)" or "Infinite Jump (Off)"
+	end
+end
+
+UserInputService.JumpRequest:Connect(function()
+	if not infiniteJumpEnabled then
+		return
+	end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+-- ===== God Mode (auto-heal on damage) =====
+local godModeEnabled = false
+local godModeButtonRef
+local godModeConnection
+
+local function toggleGodMode()
+	godModeEnabled = not godModeEnabled
+	if godModeButtonRef then
+		godModeButtonRef.Text = godModeEnabled and "God Mode (On)" or "God Mode (Off)"
+	end
+
+	if godModeConnection then
+		godModeConnection:Disconnect()
+		godModeConnection = nil
+	end
+
+	if godModeEnabled then
+		local character = player.Character or player.CharacterAdded:Wait()
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.Health = humanoid.MaxHealth
+		godModeConnection = humanoid.HealthChanged:Connect(function(newHealth)
+			if godModeEnabled and newHealth < humanoid.MaxHealth then
+				humanoid.Health = humanoid.MaxHealth
+			end
+		end)
+	end
+end
+
+player.CharacterAdded:Connect(function(character)
+	-- Re-arm god mode on respawn if it was left on
+	if godModeEnabled then
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.Health = humanoid.MaxHealth
+		if godModeConnection then
+			godModeConnection:Disconnect()
+		end
+		godModeConnection = humanoid.HealthChanged:Connect(function(newHealth)
+			if godModeEnabled and newHealth < humanoid.MaxHealth then
+				humanoid.Health = humanoid.MaxHealth
+			end
+		end)
+	end
+
+	-- Reset fly/noclip state on respawn
+	flying = false
+	flyBodyVelocity = nil
+	flyBodyGyro = nil
+	if flyButtonRef then
+		flyButtonRef.Text = "Fly (Off)"
+	end
+	noclip = false
+	if noclipButtonRef then
+		noclipButtonRef.Text = "Noclip (Off)"
+	end
+end)
+
+-- ===== ESP (highlight other players through walls) =====
+local espEnabled = false
+local espButtonRef
+local highlights = {}
+
+local function addHighlight(otherPlayer)
+	if otherPlayer == player then
+		return
+	end
+	local character = otherPlayer.Character
+	if not character or highlights[otherPlayer] then
+		return
+	end
+
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = Color3.fromRGB(255, 0, 0)
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+	highlight.FillTransparency = 0.5
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = character
+
+	highlights[otherPlayer] = highlight
+end
+
+local function removeHighlight(otherPlayer)
+	local highlight = highlights[otherPlayer]
+	if highlight then
+		highlight:Destroy()
+		highlights[otherPlayer] = nil
+	end
+end
+
+local function toggleESP()
+	espEnabled = not espEnabled
+	if espButtonRef then
+		espButtonRef.Text = espEnabled and "ESP (On)" or "ESP (Off)"
+	end
+
+	if espEnabled then
+		for _, otherPlayer in pairs(Players:GetPlayers()) do
+			addHighlight(otherPlayer)
+		end
+	else
+		for otherPlayer in pairs(highlights) do
+			removeHighlight(otherPlayer)
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(function(otherPlayer)
+	otherPlayer.CharacterAdded:Connect(function()
+		if espEnabled then
+			addHighlight(otherPlayer)
+		end
+	end)
+end)
+
+for _, otherPlayer in pairs(Players:GetPlayers()) do
+	otherPlayer.CharacterAdded:Connect(function()
+		if espEnabled then
+			addHighlight(otherPlayer)
+		end
+	end)
+end
+
+-- ===== Reset Stats =====
+local function resetStats()
+	setHumanoidStat("WalkSpeed", DEFAULT_WALKSPEED)
+	setHumanoidStat("JumpPower", DEFAULT_JUMPPOWER)
+end
+
+-- ===== Loadout (teleport to Armor + boosted speed/jump in one click) =====
+local function runLoadout()
+	teleportPlayer(ARMOR_POSITION)
+	setHumanoidStat("WalkSpeed", 200)
+	setHumanoidStat("JumpPower", 100)
+end
 
 -- Helper to create a button inside the scroll list
 local function createButton(name, text, order, onClick)
@@ -434,5 +624,11 @@ createButton("BankButton", "Bank", 9, function()
 	teleportPlayer(BANK_POSITION)
 end)
 
--- Fly toggle button
 flyButtonRef = createButton("FlyButton", "Fly (Off)", 10, toggleFly)
+noclipButtonRef = createButton("NoclipButton", "Noclip (Off)", 11, toggleNoclip)
+infiniteJumpButtonRef = createButton("InfiniteJumpButton", "Infinite Jump (Off)", 12, toggleInfiniteJump)
+godModeButtonRef = createButton("GodModeButton", "God Mode (Off)", 13, toggleGodMode)
+espButtonRef = createButton("EspButton", "ESP (Off)", 14, toggleESP)
+
+createButton("ResetStatsButton", "Reset Stats", 15, resetStats)
+createButton("LoadoutButton", "Loadout (Armor+Buffs)", 16, runLoadout)
