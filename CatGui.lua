@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 -- Teleport locations
@@ -19,6 +20,20 @@ local BANK_POSITION = Vector3.new(7, 35, 650)
 local DEFAULT_WALKSPEED = 16
 local DEFAULT_JUMPPOWER = 50
 
+-- ===== Palette =====
+local COLOR_BG_TOP = Color3.fromRGB(26, 24, 37)
+local COLOR_BG_BOTTOM = Color3.fromRGB(18, 17, 27)
+local COLOR_TITLEBAR = Color3.fromRGB(15, 14, 22)
+local COLOR_ACCENT_1 = Color3.fromRGB(139, 92, 246) -- violet
+local COLOR_ACCENT_2 = Color3.fromRGB(59, 130, 246) -- blue
+local COLOR_TEXT = Color3.fromRGB(240, 240, 245)
+local COLOR_MUTED = Color3.fromRGB(150, 148, 168)
+
+local FRAME_WIDTH = 240
+local BUTTON_WIDTH = 208
+local EXPANDED_HEIGHT = 360
+local TITLEBAR_HEIGHT = 36
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatGui"
@@ -28,44 +43,94 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 -- Outer frame (fixed height, draggable via title bar)
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 220, 0, 320)
+frame.Size = UDim2.new(0, FRAME_WIDTH, 0, EXPANDED_HEIGHT)
 frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.BackgroundColor3 = COLOR_BG_TOP
 frame.BorderSizePixel = 0
+frame.ClipsDescendants = false
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = frame
+
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new(COLOR_BG_TOP, COLOR_BG_BOTTOM)
+frameGradient.Rotation = 90
+frameGradient.Parent = frame
+
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Color = COLOR_ACCENT_1
+frameStroke.Transparency = 0.7
+frameStroke.Thickness = 1
+frameStroke.Parent = frame
 
 -- Title bar (drag handle)
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleBar.Size = UDim2.new(1, 0, 0, TITLEBAR_HEIGHT)
+titleBar.BackgroundColor3 = COLOR_TITLEBAR
 titleBar.BorderSizePixel = 0
+titleBar.ZIndex = 2
 titleBar.Parent = frame
 
 local titleBarCorner = Instance.new("UICorner")
-titleBarCorner.CornerRadius = UDim.new(0, 8)
+titleBarCorner.CornerRadius = UDim.new(0, 10)
 titleBarCorner.Parent = titleBar
 
 local titleBarFix = Instance.new("Frame")
-titleBarFix.Size = UDim2.new(1, 0, 0, 10)
-titleBarFix.Position = UDim2.new(0, 0, 1, -10)
-titleBarFix.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleBarFix.Size = UDim2.new(1, 0, 0, 12)
+titleBarFix.Position = UDim2.new(0, 0, 1, -12)
+titleBarFix.BackgroundColor3 = COLOR_TITLEBAR
 titleBarFix.BorderSizePixel = 0
-titleBarFix.ZIndex = 0
+titleBarFix.ZIndex = 2
 titleBarFix.Parent = titleBar
 
+local titleAccent = Instance.new("Frame")
+titleAccent.Size = UDim2.new(0, 4, 1, -12)
+titleAccent.Position = UDim2.new(0, 0, 0, 6)
+titleAccent.BorderSizePixel = 0
+titleAccent.ZIndex = 3
+titleAccent.Parent = titleBar
+
+local titleAccentCorner = Instance.new("UICorner")
+titleAccentCorner.CornerRadius = UDim.new(1, 0)
+titleAccentCorner.Parent = titleAccent
+
+local titleAccentGradient = Instance.new("UIGradient")
+titleAccentGradient.Color = ColorSequence.new(COLOR_ACCENT_1, COLOR_ACCENT_2)
+titleAccentGradient.Rotation = 90
+titleAccentGradient.Parent = titleAccent
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 1, 0)
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 14, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "Cat Gui"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.Text = "🐱 Cat Gui"
+title.TextColor3 = COLOR_TEXT
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 15
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 3
 title.Parent = titleBar
+
+-- Minimize button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 26, 0, 26)
+minimizeButton.Position = UDim2.new(1, -32, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.BackgroundTransparency = 0.92
+minimizeButton.Text = "-"
+minimizeButton.TextColor3 = COLOR_TEXT
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 18
+minimizeButton.ZIndex = 3
+minimizeButton.Parent = titleBar
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 6)
+minimizeCorner.Parent = minimizeButton
 
 -- Dragging logic (title bar moves the whole panel)
 local dragging = false
@@ -99,25 +164,41 @@ end)
 -- Scrolling container for buttons
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Name = "ButtonList"
-scrollFrame.Size = UDim2.new(1, 0, 1, -30)
-scrollFrame.Position = UDim2.new(0, 0, 0, 30)
+scrollFrame.Size = UDim2.new(1, 0, 1, -TITLEBAR_HEIGHT)
+scrollFrame.Position = UDim2.new(0, 0, 0, TITLEBAR_HEIGHT)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = COLOR_ACCENT_1
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.Parent = frame
 
 local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 10)
+listLayout.Padding = UDim.new(0, 8)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = scrollFrame
 
 local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 10)
-listPadding.PaddingBottom = UDim.new(0, 10)
+listPadding.PaddingTop = UDim.new(0, 12)
+listPadding.PaddingBottom = UDim.new(0, 12)
 listPadding.Parent = scrollFrame
+
+-- Minimize toggle
+local minimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		TweenService:Create(frame, TweenInfo.new(0.2), { Size = UDim2.new(0, FRAME_WIDTH, 0, TITLEBAR_HEIGHT) }):Play()
+		scrollFrame.Visible = false
+		minimizeButton.Text = "+"
+	else
+		scrollFrame.Visible = true
+		TweenService:Create(frame, TweenInfo.new(0.2), { Size = UDim2.new(0, FRAME_WIDTH, 0, EXPANDED_HEIGHT) }):Play()
+		minimizeButton.Text = "-"
+	end
+end)
 
 -- Teleport function
 local function teleportPlayer(position)
@@ -136,9 +217,9 @@ end
 -- ===== Slider popup (shown on right-click of Jump/Speed buttons) =====
 local sliderPopup = Instance.new("Frame")
 sliderPopup.Name = "SliderPopup"
-sliderPopup.Size = UDim2.new(0, 190, 0, 70)
-sliderPopup.Position = UDim2.new(1, 10, 0, 30)
-sliderPopup.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+sliderPopup.Size = UDim2.new(0, 190, 0, 74)
+sliderPopup.Position = UDim2.new(1, 12, 0, TITLEBAR_HEIGHT)
+sliderPopup.BackgroundColor3 = COLOR_TITLEBAR
 sliderPopup.BorderSizePixel = 0
 sliderPopup.Visible = false
 sliderPopup.ZIndex = 10
@@ -148,12 +229,18 @@ local sliderPopupCorner = Instance.new("UICorner")
 sliderPopupCorner.CornerRadius = UDim.new(0, 8)
 sliderPopupCorner.Parent = sliderPopup
 
+local sliderPopupStroke = Instance.new("UIStroke")
+sliderPopupStroke.Color = COLOR_ACCENT_1
+sliderPopupStroke.Transparency = 0.6
+sliderPopupStroke.Thickness = 1
+sliderPopupStroke.Parent = sliderPopup
+
 local popupLabel = Instance.new("TextLabel")
 popupLabel.Size = UDim2.new(1, 0, 0, 25)
-popupLabel.Position = UDim2.new(0, 0, 0, 5)
+popupLabel.Position = UDim2.new(0, 0, 0, 6)
 popupLabel.BackgroundTransparency = 1
 popupLabel.Text = "Stat: 0"
-popupLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+popupLabel.TextColor3 = COLOR_TEXT
 popupLabel.Font = Enum.Font.GothamBold
 popupLabel.TextSize = 14
 popupLabel.ZIndex = 11
@@ -162,8 +249,8 @@ popupLabel.Parent = sliderPopup
 local track = Instance.new("Frame")
 track.Name = "Track"
 track.Size = UDim2.new(1, -20, 0, 6)
-track.Position = UDim2.new(0, 10, 0, 42)
-track.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+track.Position = UDim2.new(0, 10, 0, 46)
+track.BackgroundColor3 = Color3.fromRGB(50, 48, 62)
 track.BorderSizePixel = 0
 track.ZIndex = 11
 track.Parent = sliderPopup
@@ -175,7 +262,6 @@ trackCorner.Parent = track
 local fill = Instance.new("Frame")
 fill.Name = "Fill"
 fill.Size = UDim2.new(0, 0, 1, 0)
-fill.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 fill.BorderSizePixel = 0
 fill.ZIndex = 12
 fill.Parent = track
@@ -184,12 +270,16 @@ local fillCorner = Instance.new("UICorner")
 fillCorner.CornerRadius = UDim.new(0, 3)
 fillCorner.Parent = fill
 
+local fillGradient = Instance.new("UIGradient")
+fillGradient.Color = ColorSequence.new(COLOR_ACCENT_1, COLOR_ACCENT_2)
+fillGradient.Parent = fill
+
 local knob = Instance.new("Frame")
 knob.Name = "Knob"
 knob.Size = UDim2.new(0, 16, 0, 16)
 knob.AnchorPoint = Vector2.new(0.5, 0.5)
 knob.Position = UDim2.new(0, 0, 0.5, 0)
-knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+knob.BackgroundColor3 = COLOR_TEXT
 knob.ZIndex = 13
 knob.Parent = track
 
@@ -278,7 +368,7 @@ local function stopFly()
 	end
 
 	if flyButtonRef then
-		flyButtonRef.Text = "Fly (Off)"
+		flyButtonRef.Text = "🕊️ Fly (Off)"
 	end
 end
 
@@ -302,7 +392,7 @@ local function startFly()
 	flyBodyGyro.Parent = humanoidRootPart
 
 	if flyButtonRef then
-		flyButtonRef.Text = "Fly (On)"
+		flyButtonRef.Text = "🕊️ Fly (On)"
 	end
 end
 
@@ -363,25 +453,20 @@ end)
 local noclip = false
 local noclipButtonRef
 
-local function setCharacterCollisions(canCollide)
-	local character = player.Character
-	if not character then
-		return
-	end
-	for _, part in pairs(character:GetDescendants()) do
-		if part:IsA("BasePart") then
-			part.CanCollide = canCollide
-		end
-	end
-end
-
 local function toggleNoclip()
 	noclip = not noclip
 	if noclipButtonRef then
-		noclipButtonRef.Text = noclip and "Noclip (On)" or "Noclip (Off)"
+		noclipButtonRef.Text = noclip and "👻 Noclip (On)" or "👻 Noclip (Off)"
 	end
 	if not noclip then
-		setCharacterCollisions(true)
+		local character = player.Character
+		if character then
+			for _, part in pairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = true
+				end
+			end
+		end
 	end
 end
 
@@ -407,7 +492,7 @@ local infiniteJumpButtonRef
 local function toggleInfiniteJump()
 	infiniteJumpEnabled = not infiniteJumpEnabled
 	if infiniteJumpButtonRef then
-		infiniteJumpButtonRef.Text = infiniteJumpEnabled and "Infinite Jump (On)" or "Infinite Jump (Off)"
+		infiniteJumpButtonRef.Text = infiniteJumpEnabled and "⬆️ Infinite Jump (On)" or "⬆️ Infinite Jump (Off)"
 	end
 end
 
@@ -430,7 +515,7 @@ local godModeConnection
 local function toggleGodMode()
 	godModeEnabled = not godModeEnabled
 	if godModeButtonRef then
-		godModeButtonRef.Text = godModeEnabled and "God Mode (On)" or "God Mode (Off)"
+		godModeButtonRef.Text = godModeEnabled and "🛡️ God Mode (On)" or "🛡️ God Mode (Off)"
 	end
 
 	if godModeConnection then
@@ -451,7 +536,6 @@ local function toggleGodMode()
 end
 
 player.CharacterAdded:Connect(function(character)
-	-- Re-arm god mode on respawn if it was left on
 	if godModeEnabled then
 		local humanoid = character:WaitForChild("Humanoid")
 		humanoid.Health = humanoid.MaxHealth
@@ -465,16 +549,15 @@ player.CharacterAdded:Connect(function(character)
 		end)
 	end
 
-	-- Reset fly/noclip state on respawn
 	flying = false
 	flyBodyVelocity = nil
 	flyBodyGyro = nil
 	if flyButtonRef then
-		flyButtonRef.Text = "Fly (Off)"
+		flyButtonRef.Text = "🕊️ Fly (Off)"
 	end
 	noclip = false
 	if noclipButtonRef then
-		noclipButtonRef.Text = "Noclip (Off)"
+		noclipButtonRef.Text = "👻 Noclip (Off)"
 	end
 end)
 
@@ -493,7 +576,7 @@ local function addHighlight(otherPlayer)
 	end
 
 	local highlight = Instance.new("Highlight")
-	highlight.FillColor = Color3.fromRGB(255, 0, 0)
+	highlight.FillColor = Color3.fromRGB(239, 68, 68)
 	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
 	highlight.FillTransparency = 0.5
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -513,7 +596,7 @@ end
 local function toggleESP()
 	espEnabled = not espEnabled
 	if espButtonRef then
-		espButtonRef.Text = espEnabled and "ESP (On)" or "ESP (Off)"
+		espButtonRef.Text = espEnabled and "👁️ ESP (On)" or "👁️ ESP (Off)"
 	end
 
 	if espEnabled then
@@ -556,79 +639,115 @@ local function runLoadout()
 	setHumanoidStat("JumpPower", 100)
 end
 
--- Helper to create a button inside the scroll list
+-- Section header helper (visual grouping only, not clickable)
+local function createSectionHeader(text, order)
+	local header = Instance.new("TextLabel")
+	header.Name = text:gsub("%s+", "") .. "Header"
+	header.Size = UDim2.new(0, BUTTON_WIDTH, 0, 18)
+	header.BackgroundTransparency = 1
+	header.Text = string.upper(text)
+	header.TextColor3 = COLOR_MUTED
+	header.Font = Enum.Font.GothamBold
+	header.TextSize = 11
+	header.TextXAlignment = Enum.TextXAlignment.Left
+	header.LayoutOrder = order
+	header.Parent = scrollFrame
+	return header
+end
+
+-- Helper to create a button inside the scroll list, with gradient + hover glow
 local function createButton(name, text, order, onClick)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 180, 0, 40)
-	button.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+	button.Size = UDim2.new(0, BUTTON_WIDTH, 0, 38)
+	button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	button.AutoButtonColor = false
 	button.Text = text
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextColor3 = COLOR_TEXT
 	button.Font = Enum.Font.GothamBold
-	button.TextSize = 16
+	button.TextSize = 14
 	button.LayoutOrder = order
 	button.Parent = scrollFrame
 
 	local buttonCorner = Instance.new("UICorner")
-	buttonCorner.CornerRadius = UDim.new(0, 6)
+	buttonCorner.CornerRadius = UDim.new(0, 8)
 	buttonCorner.Parent = button
+
+	local buttonGradient = Instance.new("UIGradient")
+	buttonGradient.Color = ColorSequence.new(COLOR_ACCENT_1, COLOR_ACCENT_2)
+	buttonGradient.Rotation = 15
+	buttonGradient.Parent = button
+
+	local hoverOverlay = Instance.new("Frame")
+	hoverOverlay.Name = "HoverOverlay"
+	hoverOverlay.Size = UDim2.new(1, 0, 1, 0)
+	hoverOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	hoverOverlay.BackgroundTransparency = 1
+	hoverOverlay.BorderSizePixel = 0
+	hoverOverlay.Active = false
+	hoverOverlay.ZIndex = button.ZIndex + 1
+	hoverOverlay.Parent = button
+
+	local hoverOverlayCorner = Instance.new("UICorner")
+	hoverOverlayCorner.CornerRadius = UDim.new(0, 8)
+	hoverOverlayCorner.Parent = hoverOverlay
+
+	hoverOverlay.MouseEnter:Connect(function()
+		TweenService:Create(hoverOverlay, TweenInfo.new(0.12), { BackgroundTransparency = 0.85 }):Play()
+	end)
+	hoverOverlay.MouseLeave:Connect(function()
+		TweenService:Create(hoverOverlay, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
+	end)
 
 	button.MouseButton1Click:Connect(onClick)
 
 	return button
 end
 
-createButton("ShotgunButton", "Shotgun", 1, function()
+createSectionHeader("Teleports", 1)
+createButton("ShotgunButton", "🔫 Shotgun", 2, function()
 	teleportPlayer(SHOTGUN_POSITION)
 end)
-
-createButton("AkButton", "Ak", 2, function()
+createButton("AkButton", "🔫 Ak", 3, function()
 	teleportPlayer(AK_POSITION)
 end)
-
-createButton("ArmorButton", "Armor", 3, function()
+createButton("ArmorButton", "🛡️ Armor", 4, function()
 	teleportPlayer(ARMOR_POSITION)
 end)
-
-createButton("MinigunButton", "Minigun", 4, function()
+createButton("MinigunButton", "🔫 Minigun", 5, function()
 	teleportPlayer(MINIGUN_POSITION)
 end)
-
--- Jump Power button: left click = snap to 100, right click = open slider (0-300)
-local jumpButton = createButton("JumpButton", "Jump Power 100", 5, function()
-	setHumanoidStat("JumpPower", 100)
+createButton("BreakOutButton", "🚪 Break Out", 6, function()
+	teleportPlayer(BREAK_OUT_POSITION)
+end)
+createButton("YardButton", "🌳 Yard", 7, function()
+	teleportPlayer(YARD_POSITION)
+end)
+createButton("BankButton", "🏦 Bank", 8, function()
+	teleportPlayer(BANK_POSITION)
 end)
 
+createSectionHeader("Movement", 9)
+flyButtonRef = createButton("FlyButton", "🕊️ Fly (Off)", 10, toggleFly)
+noclipButtonRef = createButton("NoclipButton", "👻 Noclip (Off)", 11, toggleNoclip)
+infiniteJumpButtonRef = createButton("InfiniteJumpButton", "⬆️ Infinite Jump (Off)", 12, toggleInfiniteJump)
+
+createSectionHeader("Stats", 13)
+local jumpButton = createButton("JumpButton", "⬆️ Jump Power 100", 14, function()
+	setHumanoidStat("JumpPower", 100)
+end)
 jumpButton.MouseButton2Click:Connect(function()
 	openSliderPopup("JumpPower", 0, 300, 100)
 end)
 
--- Speed button: left click = snap to 200, right click = open slider (0-500)
-local speedButton = createButton("SpeedButton", "Speed 200", 6, function()
+local speedButton = createButton("SpeedButton", "💨 Speed 200", 15, function()
 	setHumanoidStat("WalkSpeed", 200)
 end)
-
 speedButton.MouseButton2Click:Connect(function()
 	openSliderPopup("WalkSpeed", 0, 500, 200)
 end)
 
-createButton("BreakOutButton", "Break Out", 7, function()
-	teleportPlayer(BREAK_OUT_POSITION)
-end)
-
-createButton("YardButton", "Yard", 8, function()
-	teleportPlayer(YARD_POSITION)
-end)
-
-createButton("BankButton", "Bank", 9, function()
-	teleportPlayer(BANK_POSITION)
-end)
-
-flyButtonRef = createButton("FlyButton", "Fly (Off)", 10, toggleFly)
-noclipButtonRef = createButton("NoclipButton", "Noclip (Off)", 11, toggleNoclip)
-infiniteJumpButtonRef = createButton("InfiniteJumpButton", "Infinite Jump (Off)", 12, toggleInfiniteJump)
-godModeButtonRef = createButton("GodModeButton", "God Mode (Off)", 13, toggleGodMode)
-espButtonRef = createButton("EspButton", "ESP (Off)", 14, toggleESP)
-
-createButton("ResetStatsButton", "Reset Stats", 15, resetStats)
-createButton("LoadoutButton", "Loadout (Armor+Buffs)", 16, runLoadout)
+godModeButtonRef = createButton("GodModeButton", "🛡️ God Mode (Off)", 16, toggleGodMode)
+espButtonRef = createButton("EspButton", "👁️ ESP (Off)", 17, toggleESP)
+createButton("ResetStatsButton", "↺ Reset Stats", 18, resetStats)
+createButton("LoadoutButton", "🎒 Loadout (Armor+Buffs)", 19, runLoadout)
