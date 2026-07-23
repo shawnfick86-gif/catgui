@@ -24,8 +24,8 @@ local DEFAULT_JUMPPOWER = 50
 local COLOR_BG_TOP = Color3.fromRGB(26, 24, 37)
 local COLOR_BG_BOTTOM = Color3.fromRGB(18, 17, 27)
 local COLOR_TITLEBAR = Color3.fromRGB(15, 14, 22)
-local COLOR_ACCENT_1 = Color3.fromRGB(139, 92, 246) -- violet
-local COLOR_ACCENT_2 = Color3.fromRGB(59, 130, 246) -- blue
+local COLOR_ACCENT_1 = Color3.fromRGB(91, 33, 182) -- deep violet
+local COLOR_ACCENT_2 = Color3.fromRGB(29, 78, 216) -- deep blue
 local COLOR_TEXT = Color3.fromRGB(240, 240, 245)
 local COLOR_MUTED = Color3.fromRGB(150, 148, 168)
 
@@ -106,7 +106,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -60, 1, 0)
 title.Position = UDim2.new(0, 14, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🐱 Cat Gui"
+title.Text = "Cat Gui"
 title.TextColor3 = COLOR_TEXT
 title.Font = Enum.Font.GothamBlack
 title.TextSize = 15
@@ -368,7 +368,7 @@ local function stopFly()
 	end
 
 	if flyButtonRef then
-		flyButtonRef.Text = "🕊️ Fly (Off)"
+		flyButtonRef.Text = "Fly (Off)"
 	end
 end
 
@@ -392,7 +392,7 @@ local function startFly()
 	flyBodyGyro.Parent = humanoidRootPart
 
 	if flyButtonRef then
-		flyButtonRef.Text = "🕊️ Fly (On)"
+		flyButtonRef.Text = "Fly (On)"
 	end
 end
 
@@ -456,7 +456,7 @@ local noclipButtonRef
 local function toggleNoclip()
 	noclip = not noclip
 	if noclipButtonRef then
-		noclipButtonRef.Text = noclip and "👻 Noclip (On)" or "👻 Noclip (Off)"
+		noclipButtonRef.Text = noclip and "Noclip (On)" or "Noclip (Off)"
 	end
 	if not noclip then
 		local character = player.Character
@@ -492,7 +492,7 @@ local infiniteJumpButtonRef
 local function toggleInfiniteJump()
 	infiniteJumpEnabled = not infiniteJumpEnabled
 	if infiniteJumpButtonRef then
-		infiniteJumpButtonRef.Text = infiniteJumpEnabled and "⬆️ Infinite Jump (On)" or "⬆️ Infinite Jump (Off)"
+		infiniteJumpButtonRef.Text = infiniteJumpEnabled and "⬆Infinite Jump (On)" or "⬆Infinite Jump (Off)"
 	end
 end
 
@@ -515,7 +515,7 @@ local godModeConnection
 local function toggleGodMode()
 	godModeEnabled = not godModeEnabled
 	if godModeButtonRef then
-		godModeButtonRef.Text = godModeEnabled and "🛡️ God Mode (On)" or "🛡️ God Mode (Off)"
+		godModeButtonRef.Text = godModeEnabled and "God Mode (On)" or "God Mode (Off)"
 	end
 
 	if godModeConnection then
@@ -553,11 +553,11 @@ player.CharacterAdded:Connect(function(character)
 	flyBodyVelocity = nil
 	flyBodyGyro = nil
 	if flyButtonRef then
-		flyButtonRef.Text = "🕊️ Fly (Off)"
+		flyButtonRef.Text = "Fly (Off)"
 	end
 	noclip = false
 	if noclipButtonRef then
-		noclipButtonRef.Text = "👻 Noclip (Off)"
+		noclipButtonRef.Text = "Noclip (Off)"
 	end
 end)
 
@@ -596,7 +596,7 @@ end
 local function toggleESP()
 	espEnabled = not espEnabled
 	if espButtonRef then
-		espButtonRef.Text = espEnabled and "👁️ ESP (On)" or "👁️ ESP (Off)"
+		espButtonRef.Text = espEnabled and "ESP (On)" or "ESP (Off)"
 	end
 
 	if espEnabled then
@@ -659,11 +659,14 @@ end
 local function createButton(name, text, order, onClick)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, BUTTON_WIDTH, 0, 38)
+	button.Size = UDim2.new(0, BUTTON_WIDTH, 0, 42)
 	button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	button.AutoButtonColor = false
 	button.Text = text
-	button.TextColor3 = COLOR_TEXT
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = 0.25
+	button.TextWrapped = true
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 14
 	button.LayoutOrder = order
@@ -705,49 +708,49 @@ local function createButton(name, text, order, onClick)
 end
 
 createSectionHeader("Teleports", 1)
-createButton("ShotgunButton", "🔫 Shotgun", 2, function()
+createButton("ShotgunButton", "Shotgun", 2, function()
 	teleportPlayer(SHOTGUN_POSITION)
 end)
-createButton("AkButton", "🔫 Ak", 3, function()
+createButton("AkButton", "Ak", 3, function()
 	teleportPlayer(AK_POSITION)
 end)
-createButton("ArmorButton", "🛡️ Armor", 4, function()
+createButton("ArmorButton", "Armor", 4, function()
 	teleportPlayer(ARMOR_POSITION)
 end)
-createButton("MinigunButton", "🔫 Minigun", 5, function()
+createButton("MinigunButton", "Minigun", 5, function()
 	teleportPlayer(MINIGUN_POSITION)
 end)
-createButton("BreakOutButton", "🚪 Break Out", 6, function()
+createButton("BreakOutButton", "Break Out", 6, function()
 	teleportPlayer(BREAK_OUT_POSITION)
 end)
-createButton("YardButton", "🌳 Yard", 7, function()
+createButton("YardButton", "Yard", 7, function()
 	teleportPlayer(YARD_POSITION)
 end)
-createButton("BankButton", "🏦 Bank", 8, function()
+createButton("BankButton", "Bank", 8, function()
 	teleportPlayer(BANK_POSITION)
 end)
 
 createSectionHeader("Movement", 9)
-flyButtonRef = createButton("FlyButton", "🕊️ Fly (Off)", 10, toggleFly)
-noclipButtonRef = createButton("NoclipButton", "👻 Noclip (Off)", 11, toggleNoclip)
-infiniteJumpButtonRef = createButton("InfiniteJumpButton", "⬆️ Infinite Jump (Off)", 12, toggleInfiniteJump)
+flyButtonRef = createButton("FlyButton", "Fly (Off)", 10, toggleFly)
+noclipButtonRef = createButton("NoclipButton", "Noclip (Off)", 11, toggleNoclip)
+infiniteJumpButtonRef = createButton("InfiniteJumpButton", "⬆Infinite Jump (Off)", 12, toggleInfiniteJump)
 
 createSectionHeader("Stats", 13)
-local jumpButton = createButton("JumpButton", "⬆️ Jump Power 100", 14, function()
+local jumpButton = createButton("JumpButton", "⬆Jump Power 100", 14, function()
 	setHumanoidStat("JumpPower", 100)
 end)
 jumpButton.MouseButton2Click:Connect(function()
 	openSliderPopup("JumpPower", 0, 300, 100)
 end)
 
-local speedButton = createButton("SpeedButton", "💨 Speed 200", 15, function()
+local speedButton = createButton("SpeedButton", "Speed 200", 15, function()
 	setHumanoidStat("WalkSpeed", 200)
 end)
 speedButton.MouseButton2Click:Connect(function()
 	openSliderPopup("WalkSpeed", 0, 500, 200)
 end)
 
-godModeButtonRef = createButton("GodModeButton", "🛡️ God Mode (Off)", 16, toggleGodMode)
-espButtonRef = createButton("EspButton", "👁️ ESP (Off)", 17, toggleESP)
+godModeButtonRef = createButton("GodModeButton", "God Mode (Off)", 16, toggleGodMode)
+espButtonRef = createButton("EspButton", "ESP (Off)", 17, toggleESP)
 createButton("ResetStatsButton", "↺ Reset Stats", 18, resetStats)
-createButton("LoadoutButton", "🎒 Loadout (Armor+Buffs)", 19, runLoadout)
+createButton("LoadoutButton", "Loadout (Armor+Buffs)", 19, runLoadout)
