@@ -214,6 +214,31 @@ local function setHumanoidStat(statName, value)
 	humanoid[statName] = value
 end
 
+-- Character size scaling (R15 rigs only — these scale NumberValues don't exist on R6)
+local DEFAULT_SIZE_SCALE = 1
+local function setCharacterSize(scale)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+
+	local bodyHeightScale = humanoid:FindFirstChild("BodyHeightScale")
+	local bodyWidthScale = humanoid:FindFirstChild("BodyWidthScale")
+	local bodyDepthScale = humanoid:FindFirstChild("BodyDepthScale")
+	local headScale = humanoid:FindFirstChild("HeadScale")
+
+	if bodyHeightScale then
+		bodyHeightScale.Value = scale
+	end
+	if bodyWidthScale then
+		bodyWidthScale.Value = scale
+	end
+	if bodyDepthScale then
+		bodyDepthScale.Value = scale
+	end
+	if headScale then
+		headScale.Value = scale
+	end
+end
+
 -- ===== Slider popup (shown on right-click of Jump/Speed buttons) =====
 local sliderPopup = Instance.new("Frame")
 sliderPopup.Name = "SliderPopup"
@@ -287,7 +312,7 @@ local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
 knobCorner.Parent = knob
 
-local currentStat = { name = nil, min = 0, max = 0 }
+local currentStat = { name = nil, min = 0, max = 0, decimals = 0, apply = nil }
 local knobDragging = false
 
 local function setSliderValue(percent)
@@ -295,9 +320,19 @@ local function setSliderValue(percent)
 	fill.Size = UDim2.new(percent, 0, 1, 0)
 	knob.Position = UDim2.new(percent, 0, 0.5, 0)
 
-	local value = math.floor(currentStat.min + percent * (currentStat.max - currentStat.min))
-	popupLabel.Text = currentStat.name .. ": " .. value
-	setHumanoidStat(currentStat.name, value)
+	local raw = currentStat.min + percent * (currentStat.max - currentStat.min)
+	local value
+	if currentStat.decimals and currentStat.decimals > 0 then
+		local mult = 10 ^ currentStat.decimals
+		value = math.floor(raw * mult + 0.5) / mult
+	else
+		value = math.floor(raw)
+	end
+
+	popupLabel.Text = currentStat.name .. ": " .. tostring(value)
+	if currentStat.apply then
+		currentStat.apply(value)
+	end
 end
 
 local function percentFromInputX(inputX)
@@ -331,13 +366,13 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-local function openSliderPopup(statName, min, max, default)
+local function openSliderPopup(statName, min, max, default, decimals, applyFn)
 	if sliderPopup.Visible and currentStat.name == statName then
 		sliderPopup.Visible = false
 		return
 	end
 
-	currentStat = { name = statName, min = min, max = max }
+	currentStat = { name = statName, min = min, max = max, decimals = decimals or 0, apply = applyFn }
 	sliderPopup.Visible = true
 	setSliderValue((default - min) / (max - min))
 end
@@ -630,6 +665,7 @@ end
 local function resetStats()
 	setHumanoidStat("WalkSpeed", DEFAULT_WALKSPEED)
 	setHumanoidStat("JumpPower", DEFAULT_JUMPPOWER)
+	setCharacterSize(DEFAULT_SIZE_SCALE)
 end
 
 -- ===== Loadout (teleport to Armor + boosted speed/jump in one click) =====
@@ -740,17 +776,31 @@ local jumpButton = createButton("JumpButton", "⬆Jump Power 100", 14, function(
 	setHumanoidStat("JumpPower", 100)
 end)
 jumpButton.MouseButton2Click:Connect(function()
-	openSliderPopup("JumpPower", 0, 300, 100)
+	openSliderPopup("JumpPower", 0, 300, 100, 0, function(v)
+		setHumanoidStat("JumpPower", v)
+	end)
 end)
 
 local speedButton = createButton("SpeedButton", "Speed 200", 15, function()
 	setHumanoidStat("WalkSpeed", 200)
 end)
 speedButton.MouseButton2Click:Connect(function()
-	openSliderPopup("WalkSpeed", 0, 500, 200)
+	openSliderPopup("WalkSpeed", 0, 500, 200, 0, function(v)
+		setHumanoidStat("WalkSpeed", v)
+	end)
 end)
 
-godModeButtonRef = createButton("GodModeButton", "God Mode (Off)", 16, toggleGodMode)
-espButtonRef = createButton("EspButton", "ESP (Off)", 17, toggleESP)
-createButton("ResetStatsButton", "↺ Reset Stats", 18, resetStats)
-createButton("LoadoutButton", "Loadout (Armor+Buffs)", 19, runLoadout)
+-- Size button: left click = snap to Giant (2.5x), right click = open slider (0.5x-3x)
+local sizeButton = createButton("SizeButton", "Size: Giant (2.5x)", 16, function()
+	setCharacterSize(2.5)
+end)
+sizeButton.MouseButton2Click:Connect(function()
+	openSliderPopup("Size", 0.5, 3, 1, 1, function(v)
+		setCharacterSize(v)
+	end)
+end)
+
+godModeButtonRef = createButton("GodModeButton", "God Mode (Off)", 17, toggleGodMode)
+espButtonRef = createButton("EspButton", "ESP (Off)", 18, toggleESP)
+createButton("ResetStatsButton", "↺ Reset Stats", 19, resetStats)
+createButton("LoadoutButton", "Loadout (Armor+Buffs)", 20, runLoadout)
