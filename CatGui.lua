@@ -3,6 +3,7 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- Teleport locations
@@ -247,6 +248,124 @@ local function openSliderPopup(statName, min, max, default)
 	setSliderValue((default - min) / (max - min))
 end
 
+-- ===== Fly =====
+local FLY_SPEED = 50
+local flying = false
+local flyBodyVelocity, flyBodyGyro
+local flyButtonRef -- assigned after createButton runs, used to flip label text
+
+local function stopFly()
+	flying = false
+	if flyBodyVelocity then
+		flyBodyVelocity:Destroy()
+		flyBodyVelocity = nil
+	end
+	if flyBodyGyro then
+		flyBodyGyro:Destroy()
+		flyBodyGyro = nil
+	end
+
+	local character = player.Character
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.PlatformStand = false
+		end
+	end
+
+	if flyButtonRef then
+		flyButtonRef.Text = "Fly (Off)"
+	end
+end
+
+local function startFly()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+	local humanoid = character:WaitForChild("Humanoid")
+
+	flying = true
+	humanoid.PlatformStand = true
+
+	flyBodyVelocity = Instance.new("BodyVelocity")
+	flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	flyBodyVelocity.Parent = humanoidRootPart
+
+	flyBodyGyro = Instance.new("BodyGyro")
+	flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+	flyBodyGyro.P = 1e4
+	flyBodyGyro.CFrame = humanoidRootPart.CFrame
+	flyBodyGyro.Parent = humanoidRootPart
+
+	if flyButtonRef then
+		flyButtonRef.Text = "Fly (On)"
+	end
+end
+
+local function toggleFly()
+	if flying then
+		stopFly()
+	else
+		startFly()
+	end
+end
+
+-- Turn flying off automatically if the character resets/respawns
+player.CharacterAdded:Connect(function()
+	flying = false
+	flyBodyVelocity = nil
+	flyBodyGyro = nil
+	if flyButtonRef then
+		flyButtonRef.Text = "Fly (Off)"
+	end
+end)
+
+-- Movement loop: WASD relative to camera, Space/Shift for up/down
+RunService.Heartbeat:Connect(function()
+	if not flying then
+		return
+	end
+
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart or not flyBodyVelocity or not flyBodyGyro then
+		return
+	end
+
+	local camera = workspace.CurrentCamera
+	local moveVector = Vector3.new(0, 0, 0)
+
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+		moveVector = moveVector + camera.CFrame.LookVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+		moveVector = moveVector - camera.CFrame.LookVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+		moveVector = moveVector - camera.CFrame.RightVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+		moveVector = moveVector + camera.CFrame.RightVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+		moveVector = moveVector + Vector3.new(0, 1, 0)
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+		moveVector = moveVector - Vector3.new(0, 1, 0)
+	end
+
+	if moveVector.Magnitude > 0 then
+		moveVector = moveVector.Unit * FLY_SPEED
+	end
+
+	flyBodyVelocity.Velocity = moveVector
+	flyBodyGyro.CFrame = camera.CFrame
+end)
+
 -- Helper to create a button inside the scroll list
 local function createButton(name, text, order, onClick)
 	local button = Instance.new("TextButton")
@@ -314,3 +433,6 @@ end)
 createButton("BankButton", "Bank", 9, function()
 	teleportPlayer(BANK_POSITION)
 end)
+
+-- Fly toggle button
+flyButtonRef = createButton("FlyButton", "Fly (Off)", 10, toggleFly)
